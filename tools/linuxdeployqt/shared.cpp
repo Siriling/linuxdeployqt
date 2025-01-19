@@ -310,15 +310,7 @@ static QtModuleEntry qt6ModuleEntries[] = {
     { Qt6ShaderToolsModule, "shadertools", "Qt6ShaderTools", nullptr }
 };
 
-static QList<QString> Modules {
-    "libApplicationManager.so",
-    "libCommandManager.so",
-    "libConfigManager.so",
-    "libDataAccess.so",
-    "libDialManager.so",
-    "libModemManager.so",
-    "libRemoteObjectService.so"
-};
+static QMap<QString,QString> g_exeLibs;
 
 bool operator==(const LibraryInfo &a, const LibraryInfo &b)
 {
@@ -610,6 +602,22 @@ LddInfo findDependencyInfo2(const QString &binaryPath)
         }
     }
 
+    //添加库文件
+    if (g_exeLibs.isEmpty())
+    {
+        QDir dir(exeLibDir);
+        // 检查目录是否存在
+        if (!dir.exists()) {
+            LogError() << "程序库文件夹不存在";
+            exit(1);
+        }
+
+        //添加到库文件列表
+        for (const QFileInfo info : dir.entryInfoList(QDir::Files)) {
+            g_exeLibs.insert(info.fileName(),info.absoluteFilePath());
+        }
+    }
+
     //匹配中括号中的内容
     static const QRegularExpression regexp(QStringLiteral(R"(\[(.*?)\])"));
     foreach (const QString &outputLine, outputLines) {
@@ -622,16 +630,16 @@ LddInfo findDependencyInfo2(const QString &binaryPath)
             QString libName = match.captured(1).trimmed();
 
             //QT库
-            if (dylib.binaryPath.contains("Qt")) {
-                dylib.binaryPath = qtLibDir + libName;
+            if (libName.contains("Qt")) {
+                dylib.binaryPath = QString("%1,%2").arg(qtLibDir,libName);
             }
-            else if (Modules.contains(QString(libName)))
+            else if (g_exeLibs.contains(libName))
             {
-                dylib.binaryPath = exeLibDir + libName;
+                dylib.binaryPath = g_exeLibs.value(libName);
             }
             else
             {
-                dylib.binaryPath = crossLibDir + libName;
+                dylib.binaryPath = QString("%1,%2").arg(crossLibDir,libName);
             }
 
             LogDebug() << " dylib.binaryPath" << dylib.binaryPath;
