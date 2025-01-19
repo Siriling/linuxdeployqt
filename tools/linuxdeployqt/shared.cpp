@@ -556,7 +556,7 @@ LddInfo findDependencyInfo2(const QString &binaryPath)
     LogDebug() << " inspecting" << binaryPath;
 
     //指定要查找的目录
-    QDir dir(crossLibDir + "/bin");
+    QDir dir(QString(crossLibDir).remove("/lib") + "/bin");
     //过滤文件名中包含 "readelf" 的文件
     QStringList filters{"*readelf*"};
     //获取匹配的文件列表
