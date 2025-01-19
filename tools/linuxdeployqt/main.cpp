@@ -35,7 +35,7 @@
 #include <QDirIterator>
 #include <sstream>
 #include "excludelist.h"
-# include <gnu/libc-version.h>
+// # include <gnu/libc-version.h>
 
 int main(int argc, char **argv)
 {
@@ -212,7 +212,7 @@ int main(int argc, char **argv)
     
     // We need to catch those errors at the source of the problem
     // https://github.com/AppImage/appimage.github.io/search?q=GLIBC&unscoped_q=GLIBC&type=Issues
-    const char *glcv = gnu_get_libc_version ();
+    // const char *glcv = gnu_get_libc_version ();
     if(skipGlibcCheck) {
         if(! bundleEverything) {
             qInfo() << "WARNING: Not checking glibc on the host system.";
@@ -227,15 +227,15 @@ int main(int argc, char **argv)
         // Ubuntu Bionic Beaver (18.04) uses glibc 2.27
         // Ubuntu Focal Fossa (20.04) uses glibc 2.31
         // Ubuntu Focal Fossa (22.04) uses glibc 2.35
-        if (strverscmp (glcv, "2.36") >= 0) {
-            qInfo() << "ERROR: The host system is too new.";
-            qInfo() << "Please run on a system with a glibc version no newer than what comes with the oldest";
-            qInfo() << "currently supported mainstream distribution (Ubuntu Focal Fossa), which is glibc 2.31.";
-            qInfo() << "This is so that the resulting bundle will work on most still-supported Linux distributions.";
-            qInfo() << "For more information, please see";
-            qInfo() << "https://github.com/probonopd/linuxdeployqt/issues/340";
-            return 1;
-        }
+        // if (strverscmp (glcv, "2.36") >= 0) {
+        //     qInfo() << "ERROR: The host system is too new.";
+        //     qInfo() << "Please run on a system with a glibc version no newer than what comes with the oldest";
+        //     qInfo() << "currently supported mainstream distribution (Ubuntu Focal Fossa), which is glibc 2.31.";
+        //     qInfo() << "This is so that the resulting bundle will work on most still-supported Linux distributions.";
+        //     qInfo() << "For more information, please see";
+        //     qInfo() << "https://github.com/probonopd/linuxdeployqt/issues/340";
+        //     return 1;
+        // }
     }
 
     if (argc < 2 || (firstArgument.startsWith("-"))) {
