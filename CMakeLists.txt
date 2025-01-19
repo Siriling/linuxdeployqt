@@ -82,6 +82,6 @@ endif()
 mark_as_advanced(DATE DATE_RESULT)
 
 #设置程序生成的路径
-set(EXEC_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Bin)
+set(EXEC_PATH ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 add_subdirectory(tools/linuxdeployqt)
