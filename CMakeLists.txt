@@ -55,9 +55,9 @@ else()
         OUTPUT_STRIP_TRAILING_WHITESPACE
         RESULT_VARIABLE GIT_TAG_NAME_RESULT
     )
-    if(NOT GIT_TAG_NAME_RESULT EQUAL 0)
-        message(FATAL_ERROR "Failed to determine git tag name")
-    endif()
+    # if(NOT GIT_TAG_NAME_RESULT EQUAL 0)
+    #     message(FATAL_ERROR "Failed to determine git tag name")
+    # endif()
     mark_as_advanced(GIT_TAG_NAME GIT_TAG_NAME_RESULT)
 endif()
 
