@@ -565,8 +565,6 @@ LddInfo findDependencyInfo2(const QString &binaryPath)
         LogError() << "findDependencyInfo2:" << "找不到readelf";
         return info;
     }
-    qDebug()<<"测试"<<fileList.first().absoluteFilePath();
-    return info;
 
     QProcess readelf;
     readelf.start(fileList.first().absoluteFilePath(), QStringList() << "-d" << binaryPath << "|" << "grep" << "NEEDED");
