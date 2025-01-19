@@ -30,4 +30,5 @@ target_include_directories(linuxdeployqt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(linuxdeployqt Qt${QT_VERSION_MAJOR}::Core)
 target_compile_definitions(linuxdeployqt PRIVATE -DEXCLUDELIST="${EXCLUDELIST}")
 
-install(TARGETS linuxdeployqt RUNTIME DESTINATION ${INSTALL_RUNTIME_DIR})
+#install(TARGETS linuxdeployqt RUNTIME DESTINATION ${INSTALL_RUNTIME_DIR})
+set(EXECUTABLE_OUTPUT_PATH ${EXEC_PATH})
