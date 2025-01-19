@@ -70,6 +70,9 @@ QStringList ignoreGlob;
 bool copyCopyrightFiles = true;
 QString updateInformation;
 QString qtLibInfix;
+QString exeLibDir;
+QString qtLibDir;
+QString crossLibDir;
 
 using std::cout;
 using std::endl;
@@ -307,6 +310,16 @@ static QtModuleEntry qt6ModuleEntries[] = {
     { Qt6ShaderToolsModule, "shadertools", "Qt6ShaderTools", nullptr }
 };
 
+static QList<QString> Modules {
+    "libApplicationManager.so",
+    "libCommandManager.so",
+    "libConfigManager.so",
+    "libDataAccess.so",
+    "libDialManager.so",
+    "libModemManager.so",
+    "libRemoteObjectService.so"
+};
+
 bool operator==(const LibraryInfo &a, const LibraryInfo &b)
 {
     return ((a.libraryPath == b.libraryPath) && (a.binaryPath == b.binaryPath));
@@ -534,6 +547,103 @@ LddInfo findDependencyInfo(const QString &binaryPath)
     return info;
 }
 
+LddInfo findDependencyInfo2(const QString &binaryPath)
+{
+    LddInfo info;
+    info.binaryPath = binaryPath;
+
+    LogDebug() << "Using readelf:";
+    LogDebug() << " inspecting" << binaryPath;
+
+    //指定要查找的目录
+    QDir dir(crossLibDir + "/bin");
+    //过滤文件名中包含 "readelf" 的文件
+    QStringList filters{"*readelf*"};
+    //获取匹配的文件列表
+    QFileInfoList fileList = dir.entryInfoList(filters, QDir::Files);
+    if (fileList.isEmpty()) {
+        LogError() << "findDependencyInfo2:" << "找不到readelf";
+        return info;
+    }
+    qDebug()<<"测试"<<fileList.first().absoluteFilePath();
+    return info;
+
+    QProcess readelf;
+    readelf.start(fileList.first().absoluteFilePath(), QStringList() << "-d" << binaryPath << "|" << "grep" << "NEEDED");
+    readelf.waitForFinished();
+
+    if (readelf.exitStatus() != QProcess::NormalExit || readelf.exitCode() != 0) {
+        LogError() << "findDependencyInfo2:" << readelf.readAllStandardError();
+        return info;
+    }
+
+    static const QRegularExpression regexp(QStringLiteral(R"(\[(.*?)\])"));
+
+    QString output = readelf.readAllStandardOutput();
+    QStringList outputLines = output.split("\n", QSTRING_SPLIT_BEHAVIOR_NAMESPACE::SkipEmptyParts);
+    if (outputLines.size() < 2) {
+        if ((output.contains("statically linked") == false)){
+            LogError() << "Could not parse readelf output under 2 lines:" << output;
+        }
+        return info;
+    }
+
+    foreach (QString outputLine, outputLines) {
+
+        if (outputLine.contains("libQt6")) {
+            qtDetected = 6;
+            qtModuleEntries = qt6ModuleEntries;
+            qtModuleEntriesCount = sizeof(qt6ModuleEntries) / sizeof(qt6ModuleEntries[0]);
+        }
+        if(outputLine.contains("libQt5")){
+            qtDetected = 5;
+            qtModuleEntries = qt5ModuleEntries;
+            qtModuleEntriesCount = sizeof(qt5ModuleEntries) / sizeof(qt5ModuleEntries[0]);
+        }
+        if(outputLine.contains("libQtCore.so.4")){
+            qtDetected = 4;
+        }
+
+        // LogDebug() << "ldd outputLine:" << outputLine;
+        if ((outputLine.contains("not found")) && (qtDetectionComplete == 1)){
+            LogError() << "ldd outputLine:" << outputLine.replace("\t", "");
+            LogError() << "for binary:" << binaryPath;
+            LogError() << "Please ensure that all libraries can be found by ldd. Aborting.";
+            exit(1);
+        }
+    }
+
+    foreach (const QString &outputLine, outputLines) {
+        const QRegularExpressionMatch match = regexp.match(outputLine);
+        if (match.hasMatch()) {
+            DylibInfo dylib;
+
+            QString libName= match.captured(1).trimmed();
+
+            //QT库
+            if (dylib.binaryPath.contains("Qt")) {
+                dylib.binaryPath = qtLibDir + libName;
+            }
+            else if (Modules.contains(QString(libName)))
+            {
+                dylib.binaryPath = exeLibDir + libName;
+            }
+            else
+            {
+                dylib.binaryPath = crossLibDir + libName;
+            }
+
+            LogDebug() << " dylib.binaryPath" << dylib.binaryPath;
+            // dylib.compatibilityVersion = 0;
+            // dylib.currentVersion = 0;
+
+            info.dependencies << dylib;
+        }
+    }
+
+    return info;
+}
+
 int containsHowOften(QStringList haystack, QString needle) {
     int result = haystack.filter(needle).length();
     return result;
@@ -668,7 +778,12 @@ LibraryInfo parseLddLibraryLine(const QString &line, const QString &appDirPath, 
     }
 
     if (!info.sourceFilePath.isEmpty() && QFile::exists(info.sourceFilePath)) {
-        info.installName = findDependencyInfo(info.sourceFilePath).installName;
+        if (crossLibDir.isEmpty()) {
+            info.installName = findDependencyInfo(info.sourceFilePath).installName;
+        }
+        else {
+            info.installName = findDependencyInfo2(info.sourceFilePath).installName;
+        }
         if (info.installName.startsWith("@rpath/"))
             info.deployedInstallName = info.installName;
     }
@@ -765,7 +880,13 @@ QSet<QString> getBinaryRPaths(const QString &path, bool resolve = true, QString 
 
 QList<LibraryInfo> getQtLibraries(const QString &path, const QString &appDirPath, const QSet<QString> &rpaths)
 {
-    const LddInfo info = findDependencyInfo(path);
+    LddInfo info;
+    if (crossLibDir.isEmpty()) {
+        info = findDependencyInfo(path);
+    }
+    else {
+        info = findDependencyInfo2(path);
+    }
     return getQtLibraries(info.dependencies, appDirPath, rpaths + getBinaryRPaths(path));
 }
 
@@ -1220,7 +1341,12 @@ DeploymentInfo deployQtLibraries(const QString &appDirPath, const QStringList &a
    LogDebug() << "applicationBundle.binaryPath:" << applicationBundle.binaryPath;
 
    // Find out whether Qt is a dependency of the application to be bundled
-   LddInfo lddInfo = findDependencyInfo(appBinaryPath);
+   if (crossLibDir.isEmpty()) {
+       LddInfo lddInfo = findDependencyInfo(appBinaryPath);
+   }
+   else {
+       LddInfo lddInfo = findDependencyInfo2(appBinaryPath);
+   }
 
    if(qtDetected != 0){
 

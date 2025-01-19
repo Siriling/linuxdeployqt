@@ -76,6 +76,9 @@ int main(int argc, char **argv)
     extern bool copyCopyrightFiles;
     extern QString updateInformation;
     extern QString qtLibInfix;
+    extern QString exeLibDir;
+    extern QString qtLibDir;
+    extern QString crossLibDir;
 
     // Check arguments
     // Due to the structure of the argument parser, we have to check all arguments at first to check whether the user
@@ -186,6 +189,18 @@ int main(int argc, char **argv)
             LogDebug() << "Argument found:" << argument;
             int index = argument.indexOf("=");
             qtLibInfix = QString(argument.mid(index+1));
+        } else if (argument.startsWith("-exelibdir=")) {
+            LogDebug() << "Argument found:" << argument;
+            int index = argument.indexOf("=");
+            exeLibDir = QString(argument.mid(index+1));
+        } else if (argument.startsWith("-qtlibdir=")) {
+            LogDebug() << "Argument found:" << argument;
+            int index = argument.indexOf("=");
+            qtLibDir = QString(argument.mid(index+1));
+        } else if (argument.startsWith("-crosslibdir=")) {
+            LogDebug() << "Argument found:" << argument;
+            int index = argument.indexOf("=");
+            crossLibDir = QString(argument.mid(index+1));
         } else if (argument.startsWith("--")) {
             LogError() << "Error: arguments must not start with --, only -:" << argument << "\n";
             return 1;
@@ -211,7 +226,8 @@ int main(int argc, char **argv)
         // Ubuntu Xenial Xerus (16.04) uses glibc 2.23
         // Ubuntu Bionic Beaver (18.04) uses glibc 2.27
         // Ubuntu Focal Fossa (20.04) uses glibc 2.31
-        if (strverscmp (glcv, "2.32") >= 0) {
+        // Ubuntu Focal Fossa (22.04) uses glibc 2.35
+        if (strverscmp (glcv, "2.36") >= 0) {
             qInfo() << "ERROR: The host system is too new.";
             qInfo() << "Please run on a system with a glibc version no newer than what comes with the oldest";
             qInfo() << "currently supported mainstream distribution (Ubuntu Focal Fossa), which is glibc 2.31.";
@@ -252,6 +268,9 @@ int main(int argc, char **argv)
         qInfo() << "                              2 = normal, 3 = debug.";
         qInfo() << "   -updateinformation=<update string>        : Embed update information STRING; if zsyncmake is installed, generate zsync file";
         qInfo() << "   -qtlibinfix=<infix>      : Adapt the .so search if your Qt distribution has infix.";
+        qInfo() << "   -exelibdir=<path>        : The library path of the executable file.";
+        qInfo() << "   -qtlibdir=<path>         : Qt library path.";
+        qInfo() << "   -crosslibdir=<path>      : Cross compiled library path.";
         qInfo() << "   -version                 : Print version statement and exit.";
         qInfo() << "";
         qInfo() << "linuxdeployqt takes an application as input and makes it";
