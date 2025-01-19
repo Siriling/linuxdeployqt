@@ -567,15 +567,13 @@ LddInfo findDependencyInfo2(const QString &binaryPath)
     }
 
     QProcess readelf;
-    readelf.start(fileList.first().absoluteFilePath(), QStringList() << "-d" << binaryPath << "|" << "grep" << "NEEDED");
+    readelf.start(fileList.first().absoluteFilePath(), QStringList() << "-d" << binaryPath);
     readelf.waitForFinished();
 
     if (readelf.exitStatus() != QProcess::NormalExit || readelf.exitCode() != 0) {
         LogError() << "findDependencyInfo2:" << readelf.readAllStandardError();
         return info;
     }
-
-    static const QRegularExpression regexp(QStringLiteral(R"(\[(.*?)\])"));
 
     QString output = readelf.readAllStandardOutput();
     QStringList outputLines = output.split("\n", QSTRING_SPLIT_BEHAVIOR_NAMESPACE::SkipEmptyParts);
@@ -586,6 +584,7 @@ LddInfo findDependencyInfo2(const QString &binaryPath)
         return info;
     }
 
+    //判断Qt版本
     foreach (QString outputLine, outputLines) {
 
         if (outputLine.contains("libQt6")) {
@@ -611,12 +610,16 @@ LddInfo findDependencyInfo2(const QString &binaryPath)
         }
     }
 
+    //匹配中括号中的内容
+    static const QRegularExpression regexp(QStringLiteral(R"(\[(.*?)\])"));
     foreach (const QString &outputLine, outputLines) {
         const QRegularExpressionMatch match = regexp.match(outputLine);
-        if (match.hasMatch()) {
+
+        //是动态库且符合匹配规则
+        if (outputLine.contains("NEEDED")&&match.hasMatch()) {
             DylibInfo dylib;
 
-            QString libName= match.captured(1).trimmed();
+            QString libName = match.captured(1).trimmed();
 
             //QT库
             if (dylib.binaryPath.contains("Qt")) {
