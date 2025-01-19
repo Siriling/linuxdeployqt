@@ -631,7 +631,7 @@ LddInfo findDependencyInfo2(const QString &binaryPath)
 
             //QT库
             if (libName.contains("Qt")) {
-                dylib.binaryPath = QString("%1,%2").arg(qtLibDir,libName);
+                dylib.binaryPath = QString("%1/%2").arg(qtLibDir,libName);
             }
             else if (g_exeLibs.contains(libName))
             {
@@ -639,7 +639,7 @@ LddInfo findDependencyInfo2(const QString &binaryPath)
             }
             else
             {
-                dylib.binaryPath = QString("%1,%2").arg(crossLibDir,libName);
+                dylib.binaryPath = QString("%1/%2").arg(crossLibDir,libName);
             }
 
             LogDebug() << " dylib.binaryPath" << dylib.binaryPath;
