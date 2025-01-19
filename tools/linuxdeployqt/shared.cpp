@@ -560,6 +560,7 @@ LddInfo findDependencyInfo2(const QString &binaryPath)
 
     QProcess readelf;
     readelf.start(fileList.first().absoluteFilePath(), QStringList() << "-d" << binaryPath);
+    // readelf.start("readelf", QStringList() << "-d" << binaryPath);
     readelf.waitForFinished();
 
     if (readelf.exitStatus() != QProcess::NormalExit || readelf.exitCode() != 0) {
